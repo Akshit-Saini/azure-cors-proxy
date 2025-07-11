@@ -18,27 +18,32 @@ app.use(express.json());
 
 // --- Main Proxy Route ---
 app.post('/sparql', async (req, res) => {
-  const { endpoint, query } = req.body;
-  if (!endpoint || !query) {
-    return res.status(400).json({ error: 'Missing endpoint or query' });
-  }
-  try {
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/sparql-query',
-        'Accept': 'application/sparql-results+json',
-      },
-      body: query,
-    });
-    const text = await response.text();
-    // Set CORS header on the proxied response as well
-    res.header('Access-Control-Allow-Origin', '*');
-    res.status(response.status).send(text);
-  } catch (err) {
-    res.status(500).json({ error: 'Proxy error', details: err.message });
-  }
-});
+    const { endpoint, query } = req.body;
+    // Log the incoming request for debugging
+    console.log('Received request:', { endpoint, query: query?.slice?.(0, 100) }); // log first 100 chars
+    if (!endpoint || !query) {
+      return res.status(400).json({ error: 'Missing endpoint or query' });
+    }
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/sparql-query',
+          'Accept': 'application/sparql-results+json',
+        },
+        body: query,
+      });
+      const text = await response.text();
+      // Log the response status from Virtuoso
+      console.log('Virtuoso response status:', response.status);
+      res.header('Access-Control-Allow-Origin', '*');
+      res.status(response.status).send(text);
+    } catch (err) {
+      // Log any errors
+      console.error('Proxy error:', err);
+      res.status(500).json({ error: 'Proxy error', details: err.message });
+    }
+  });
 
 // --- Health Check Route ---
 app.get('/', (req, res) => {
